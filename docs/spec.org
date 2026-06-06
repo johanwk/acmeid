@@ -1,0 +1,209 @@
+That sounds solid. Here's a crisp "v1.0" you can hand to colleagues and implement today.
+
+#+title: ACME Localname ID --- v1.0
+
+Scope:* Localname portion of enterprise IRIs, for intranet RDF as the canonical data format. *Form:* One fixed pattern---no options.
+
+* 1) Syntax
+:PROPERTIES:
+:CUSTOM_ID: syntax
+:END:
+#+begin_example
+<TYPE>_<SLUG><TIME><RAND><CHK>
+#+end_example
+
+- =TYPE= --- 1 uppercase letter owned by a domain (e.g., =C= concept, =D= document, =I= invoice, =A= asset...).
+- =_= --- underscore separator.
+- =SLUG= --- 5 lowercase letters from English label (ASCII a--z; see §2).
+- =TIME= --- 4 Crockford Base32 chars = *days since 2020-01-01 UTC*, left-padded (sortable by day).
+- =RAND= --- 4 Crockford Base32 chars (20 bits entropy).
+- =CHK= --- 1 Crockford Base32 *check symbol* (mod-32 sum, see §2).
+
+*Alphabet (Crockford Base32):* =0123456789ABCDEFGHJKMNPQRSTVWXYZ= (no I, L, O, U).
+
+*Regex (validation):*
+
+#+begin_example
+^[A-Z]_[a-z]{5}[0-9A-HJKMNP-TV-Z]{4}[0-9A-HJKMNP-TV-Z]{4}[0-9A-HJKMNP-TV-Z]$
+#+end_example
+
+*IRI / CURIE examples*
+
+#+begin_example
+in-acme-term:C_emploAB2MDQ1RX
+https://in.acme.com/vocab/term/C_emploAB2MDQ1RX
+#+end_example
+
+* 2) Generation rules
+:PROPERTIES:
+:CUSTOM_ID: generation-rules
+:END:
+- *SLUG(5):* Take =skos:prefLabel= [cite/t:@en] → NFKD → ASCII → lowercase → keep =a–z= → first 5; if <5, pad with =x=. Examples: "Employment contract" → =emplo=; "ISO 50001" → =isoxx=; "Ångström" → =angst=.
+
+- *TIME(4):* =days = floor((nowUTC − 2020-01-01T00:00:00Z)/86400)= → encode in Crockford Base32, width=4 (left-pad with =0=).
+
+- *RAND(4):* 20 random bits → Crockford Base32, width=4.
+
+- *CHK(1):* Let =core = "<TYPE>_<SLUG><TIME><RAND>"=. Map each Crockford char to its value (ignore =_=). Compute =s = Σ values(core)=. =CHK = ALPH[(32 − (s mod 32)) mod 32]=. *Verification:* =Σ values(<full ID>) mod 32 == 0=.
+
+* 3) Collision handling & throughput
+:PROPERTIES:
+:CUSTOM_ID: collision-handling-throughput
+:END:
+- Random space per *day*: 2²⁰ ≈ 1,048,576.
+- Enforce a *unique index* on the localname; on conflict, regenerate =RAND= and recompute =CHK= (retry loop).
+- For /very large same-day backfills/, run multiple workers or spread across days; if needed, temporarily use a sequenced payload under a controlled "lease" subspace (v2 policy).
+
+* 4) Policy & governance (minimal)
+:PROPERTIES:
+:CUSTOM_ID: policy-governance-minimal
+:END:
+- *Non-reuse:* IDs are never reassigned.
+- *Minting:* via API/CLI libs; domains own the =TYPE= letter.
+- *Search-before-mint (recommended):* the API should show near-duplicates to encourage reuse.
+- *Statuses:* model in RDF (=provisional | canonical | deprecated=)---*status is metadata*, never part of the ID.
+
+* 5) Service & developer surface
+:PROPERTIES:
+:CUSTOM_ID: service-developer-surface
+:END:
+*Canonical resolution:*
+
+- =/vocab/term/<ID>= (RDF first-class; content negotiation).
+- Store and display *the ID exactly* as generated---no additional slugs in URLs.
+
+*REST (minimal):*
+
+#+begin_example
+POST /id/mint  { "type":"C", "label_en":"Employment contract" }
+→ 201 { "id":"C_emploAB2MDQ1RX" }
+
+POST /id/verify { "id":"C_emploAB2MDQ1RX" }
+→ 200 { "valid": true }
+#+end_example
+
+*CLI (examples):*
+
+#+begin_example
+acmeid mint -t C -l "Employment contract"
+acmeid verify C_emploAB2MDQ1RX
+#+end_example
+
+* 6) RDF & SHACL
+:PROPERTIES:
+:CUSTOM_ID: rdf-shacl
+:END:
+#+begin_src turtle
+@prefix in-term: <https://in.acme.com/vocab/term/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+in-term:C_emploAB2MDQ1RX
+  a skos:Concept ;
+  skos:prefLabel "Employment contract"@en ;
+  dcterms:created "2025-10-29"^^xsd:date .
+
+# Localname pattern (apply at ingest or on a wrapper node)
+[] a sh:PropertyShape ;
+   sh:path rdf:subject ;  # or your IRI-capture mechanism
+   sh:pattern "^[A-Z]_[a-z]{5}[0-9A-HJKMNP-TV-Z]{4}[0-9A-HJKMNP-TV-Z]{4}[0-9A-HJKMNP-TV-Z]$" .
+#+end_src
+
+* 7) DB guardrails
+:PROPERTIES:
+:CUSTOM_ID: db-guardrails
+:END:
+- *Unique index* on the ID column.
+- *CHECK constraint* (where supported) for the regex.
+- *Before-insert trigger* (optional) to recompute/verify =CHK=.
+
+*T-SQL CHECK (pattern only):*
+
+#+begin_src sql
+ALTER TABLE dbo.Terms ADD CONSTRAINT CK_Terms_IdPattern
+CHECK (Id LIKE '[A-Z]_[a-z][a-z][a-z][a-z][a-z][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z][0-9A-HJKMNP-TV-Z]');
+#+end_src
+
+* Verification
+Crucial:
+ - The checksum is calculated over all characters in the ID string
+   (except the underscore), including the TYPE and SLUG.
+
+
+
+* 8) Tiny reference implementations
+:PROPERTIES:
+:CUSTOM_ID: tiny-reference-implementations
+:END:
+*Python (single file):*
+
+#+begin_src python
+import os, time, unicodedata, re
+ALPH = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; VAL={c:i for i,c in enumerate(ALPH)}
+def slug5(s):
+    s=unicodedata.normalize("NFKD",s).encode("ascii","ignore").decode().lower()
+    s=re.sub(r"[^a-z]+","",s); return (s+"xxxxx")[:5]
+def b32(n,w):
+    s="0" if n==0 else ""; 
+    while n>0: n,r=divmod(n,32); s=ALPH[r]+s
+    return s.rjust(w,"0")
+def randb32(w):
+    bits=w*5; n=int.from_bytes(os.urandom((bits+7)//8),"big") & ((1<<bits)-1)
+    return b32(n,w)
+def chk(core):
+    s=sum(VAL[c] for c in core if c!="_"); return ALPH[(32-(s%32))%32]
+def mint(t, label_en):
+    days=int((time.time()-1577836800)//86400)
+    core=f"{t.upper()[0]}_{slug5(label_en)}{b32(days,4)}{randb32(4)}"
+    return core+chk(core)
+# print(mint("C","Employment contract"))
+#+end_src
+
+*Emacs Lisp (compact):*
+
+#+begin_src elisp
+(defun acmeid--slug5 (s)
+  (let* ((s (downcase (subst-char-in-string ?ø ?o
+             (subst-char-in-string ?å ?a (subst-char-in-string ?æ ?e s)))))
+         (s (replace-regexp-in-string "[^a-z]" "" s)))
+    (substring (concat s "xxxxx") 0 5)))
+(defconst acmeid-b32 "0123456789ABCDEFGHJKMNPQRSTVWXYZ")
+(defun acmeid--b32 (n w)
+  (let ((s ""))
+    (while (> n 0)
+      (setq s (concat (string (aref acmeid-b32 (% n 32))) s)
+            n (/ n 32)))
+    (setq s (if (string-empty-p s) "0" s))
+    (concat (make-string (max 0 (- w (length s))) ?0) s)))
+(defun acmeid--randb32 (w)
+  (let* ((bits (* 5 w)) (bytes (ceiling bits 8.0))
+         (n 0))
+    (dotimes (_ bytes) (setq n (+ (* n 256) (random 256))))
+    (setq n (logand n (1- (ash 1 bits))))
+    (acmeid--b32 n w)))
+(defun acmeid--chk (core)
+  (let* ((val (lambda (c) (cl-position c acmeid-b32)))
+         (sum (apply #'+ (mapcar (lambda (c) (if (= c ?_) 0 (funcall val c)))
+                                 (string-to-list core)))))
+    (string (aref acmeid-b32 (mod (- 32 (mod sum 32)) 32)))))
+(defun acmeid-mint (type label)
+  (let* ((days (/ (- (float-time) (float-time (encode-time 0 0 0 1 1 2020 0 0 0))) 86400))
+         (core (format "%c_%s%s%s"
+                       (upcase (aref type 0))
+                       (acmeid--slug5 label)
+                       (acmeid--b32 (floor days) 4)
+                       (acmeid--randb32 4))))
+    (concat core (acmeid--chk core))))
+#+end_src
+
+--------------
+
+* Roll-out notes
+:PROPERTIES:
+:CUSTOM_ID: roll-out-notes
+:END:
+- Publish this as a *one-page policy* + the tiny libs above.
+- Provide an *API* and a *CLI* so teams can mint locally and submit to the shared repo.
+- Keep a small registry of *TYPE letters*.
+- Encourage *search-before-mint* in the submission workflow to promote reuse.
+
+This keeps IDs short, readable enough, sortable, and uniform across your intranet RDF---while remaining simple to validate and implement.
