@@ -35,7 +35,9 @@ endif
 ifneq (,$(filter Darwin%,$(UNAME_S)))
     EXEEXT      :=
     SHLIB       := acmeid.dylib
-    LDFLAGS_SHL := -dynamiclib
+    # SQLite extension symbols (sqlite3_*) are resolved at runtime by
+    # the hosting sqlite3 binary; tell ld64 not to fail on them.
+    LDFLAGS_SHL := -dynamiclib -undefined dynamic_lookup
     LIBS_SHL    :=
     INSTALL_BIN := /usr/local/bin
     INSTALL_LIB := /usr/local/lib
