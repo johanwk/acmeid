@@ -6,10 +6,15 @@
 
 set -eu
 
+# Use the full filename rather than relying on SQLite to append the
+# platform suffix.  On macOS the CLI binary `./acmeid` sits next to
+# `./acmeid.dylib`, and `dlopen("./acmeid")` will happily open the
+# PIE executable -- SQLite then looks for `sqlite3_acmeid_init` in
+# the CLI and reports "symbol not found".
 case "$(uname -s 2>/dev/null || echo unknown)" in
-    MINGW*|MSYS*|CYGWIN*) EXT=./acmeid ;;     # SQLite appends .dll
-    Darwin*)              EXT=./acmeid ;;     # SQLite appends .dylib
-    *)                    EXT=./acmeid ;;     # SQLite appends .so
+    MINGW*|MSYS*|CYGWIN*) EXT=./acmeid.dll ;;
+    Darwin*)              EXT=./acmeid.dylib ;;
+    *)                    EXT=./acmeid.so ;;
 esac
 
 if ! command -v sqlite3 >/dev/null 2>&1; then
