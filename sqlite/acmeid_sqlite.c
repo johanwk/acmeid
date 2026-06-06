@@ -124,3 +124,11 @@ int sqlite3_acmeid_init(sqlite3 *db, char **pzErrMsg,
 
     return SQLITE_OK;
 }
+
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
+int sqlite3_extension_init(sqlite3 *db, char **pzErrMsg,
+                           const sqlite3_api_routines *pApi) {
+    return sqlite3_acmeid_init(db, pzErrMsg, pApi);
+}
