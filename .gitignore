@@ -1,0 +1,24 @@
+# Build artefacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.lib
+*.exe
+
+# CLI binary (no extension on POSIX)
+/acmeid
+/acmeid-test
+
+# Test artefacts
+/test/test_core
+/test/test_core.exe
+/test/*.tmp
+/test/*.actual
+
+# Editor / OS junk
+*~
+.DS_Store
+.#*
+\#*\#

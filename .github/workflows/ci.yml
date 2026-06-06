@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  posix:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install sqlite3
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y sqlite3
+      - name: Build
+        run: make lib cli sqlite
+      - name: Test
+        run: make test
+      - name: Stage artefacts
+        run: |
+          mkdir -p dist
+          cp acmeid dist/
+          if [ -f acmeid.so    ]; then cp acmeid.so    dist/; fi
+          if [ -f acmeid.dylib ]; then cp acmeid.dylib dist/; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: acmeid-${{ matrix.os }}
+          path: dist/
+
+  windows-msys2:
+    name: windows-mingw64
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-sqlite3
+            make
+      - name: Build
+        run: make lib cli sqlite
+      - name: Test
+        run: make test
+      - name: Stage artefacts
+        run: |
+          mkdir -p dist
+          cp acmeid.exe acmeid.dll dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: acmeid-windows-mingw64
+          path: dist/

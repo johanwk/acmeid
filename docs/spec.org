@@ -1,31 +1,112 @@
-That sounds solid. Here's a crisp "v1.0" you can hand to colleagues and implement today.
+#+title: ACME Localname ID --- v1.1
 
-#+title: ACME Localname ID --- v1.0
+*Scope:* Localname portion of enterprise IRIs, for intranet RDF as the
+canonical data format. *Form:* one fixed pattern with three optional
+elements (prefix, slug, random length).
 
-Scope:* Localname portion of enterprise IRIs, for intranet RDF as the canonical data format. *Form:* One fixed pattern---no options.
+* v1.1 changes (was v1.0)
+:PROPERTIES:
+:CUSTOM_ID: v1-1-changes
+:END:
+The v1.0 syntax was =TYPE_SLUG5TIME4RAND4CHK= -- exactly 16 characters
+in the localname. v1.1 keeps the v1.0 spelling as one possible shape
+but adds three orthogonal options so a single library and a single
+SQL UDF can cover all the cases we actually see in practice:
+
+- *Optional prefix.* The localname may be prefixed with a CURIE-style
+  =prefix:= (e.g. =lepus:=). The prefix is copied through =mint= and
+  tolerated by =verify=, but is *not* part of the checksum. This
+  matches the way ids appear in our RDF (always with a prefix) and in
+  our SQL spine tables (sometimes stored bare, sometimes with the
+  prefix already attached).
+- *Optional slug.* When no human label is available, the 5-letter slug
+  may be omitted. The remainder still verifies. =T_TTTTRRRRC= (11
+  chars) is now a legal shape.
+- *Configurable random width.* =RAND= may be any width in =[2,8]= (10
+  to 40 bits of entropy). Values =<= 0= are interpreted as "default"
+  (=4=); values outside =[2,8]= are silently clamped. The default of
+  4 reproduces the v1.0 throughput and collision properties.
+
+The canonical four-arity signature -- used identically in the C
+library, the CLI, and the SQLite UDF -- is:
+
+#+begin_example
+acme_mint_id(type)
+acme_mint_id(type, prefix)
+acme_mint_id(type, prefix, label)
+acme_mint_id(type, prefix, label, length)
+#+end_example
+
+Argument order is /type, prefix, label, length/ -- optimised for the
+CURIE use case.
+
+* Windows / MSYS2 build appendix
+:PROPERTIES:
+:CUSTOM_ID: msys2-build
+:END:
+The primary build and runtime target is *Windows / MSYS2 mingw-w64*;
+Linux and macOS are also supported.
+
+- OS detection uses =uname -s=:
+  =Linux*= -> =acmeid.so=,
+  =Darwin*= -> =acmeid.dylib=,
+  =MINGW*=, =MSYS*=, =CYGWIN*= -> =acmeid.dll=.
+- Install convention on MSYS2 is =c:/opt/acmeid/acmeid.dll=, alongside
+  =/mingw64/bin/sqlite3=.
+- Load mechanics in SQLite: =.load c:/opt/acmeid/acmeid= -- *no =.dll=
+  suffix* (SQLite appends it) and *forward slashes are fine* (SQLite
+  normalises them).
+- The DLL is built with =-static-libgcc= so it has no dependency on
+  =libgcc_s_seh-1.dll= when loaded from a non-MSYS sqlite shell.
+  =bcrypt.dll= (for =BCryptGenRandom=) is a system DLL.
+
+--------------
+
+The remainder of this document is the v1.0 specification, lightly
+edited where v1.1 affects the wording.
+
+* 1) Syntax
+:PROPERTIES:
+:CUSTOM_ID: syntax
+:END:
 
 * 1) Syntax
 :PROPERTIES:
 :CUSTOM_ID: syntax
 :END:
 #+begin_example
-<TYPE>_<SLUG><TIME><RAND><CHK>
+[<PREFIX>:]<TYPE>_[<SLUG>]<TIME><RAND><CHK>
 #+end_example
 
+- =PREFIX= --- /v1.1, optional./ CURIE-style prefix terminated by =:=.
+  Copied through =mint= and tolerated by =verify=. *Not part of the
+  checksum.*
 - =TYPE= --- 1 uppercase letter owned by a domain (e.g., =C= concept, =D= document, =I= invoice, =A= asset...).
 - =_= --- underscore separator.
-- =SLUG= --- 5 lowercase letters from English label (ASCII a--z; see §2).
+- =SLUG= --- /v1.1, optional./ 5 lowercase letters from an English label (ASCII a--z; see §2).
 - =TIME= --- 4 Crockford Base32 chars = *days since 2020-01-01 UTC*, left-padded (sortable by day).
-- =RAND= --- 4 Crockford Base32 chars (20 bits entropy).
+- =RAND= --- /v1.1: configurable width =N= in =[2,8]= (default 4), giving =5N= bits of entropy./
 - =CHK= --- 1 Crockford Base32 *check symbol* (mod-32 sum, see §2).
 
 *Alphabet (Crockford Base32):* =0123456789ABCDEFGHJKMNPQRSTVWXYZ= (no I, L, O, U).
 
 *Regex (validation):*
 
+The v1.0 regex still matches the "with slug, RAND=4" shape:
+
 #+begin_example
 ^[A-Z]_[a-z]{5}[0-9A-HJKMNP-TV-Z]{4}[0-9A-HJKMNP-TV-Z]{4}[0-9A-HJKMNP-TV-Z]$
 #+end_example
+
+The v1.1-permissive regex (optional prefix, optional slug, RAND in
+[2,8]):
+
+#+begin_example
+^([A-Za-z][\w-]*:)?[A-Z]_(?:[a-z]{5})?[0-9A-HJKMNP-TV-Z]{4}[0-9A-HJKMNP-TV-Z]{2,8}[0-9A-HJKMNP-TV-Z]$
+#+end_example
+
+Implementations should regard the regex as a /shape/ check only;
+authoritative validation is the checksum (=acme_verify_id=).
 
 *IRI / CURIE examples*
 

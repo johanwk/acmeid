@@ -2,7 +2,7 @@
 #+author: johanw
 #+date: 2026
 #+startup: overview
-#+todo: TODO IN-PROGRESS | DONE
+
 
 * Overview
 
@@ -41,17 +41,22 @@ Argument order in SQL/CLI mirrors this: =type, prefix, label, length=
 * Phase 0 — Bootstrap                                                :setup:
 
 ** TODO 0.1 Initialise repo
-*** TODO Create =git init acmeid= with =main= branch
-*** TODO Add =LICENSE= (MIT)
-*** TODO Add =README.md= with one-paragraph summary + link to =docs/spec.org=
-*** TODO Add =.gitignore= for =*.o /.so /.dylib /.dll /.exe /.a acmeid acmeid-test=
-*** TODO Add =.editorconfig= (LF endings, 4-space C, 2-space org)
-*** TODO Configure =git config core.autocrlf input= for the repo (avoid CRLF noise on Windows)
+*** DONE Create =git init acmeid= with =main= branch
+CLOSED: [2026-06-06 lør. 12:56]
+*** DONE Add =LICENSE= (GPL)
+CLOSED: [2026-06-06 lør. 12:57]
+*** DONE Add =README.md= with one-paragraph summary + link to =docs/spec.org=
+*** DONE Add =.gitignore= for =*.o /.so /.dylib /.dll /.exe /.a acmeid acmeid-test=
+*** DONE Add =.editorconfig= (LF endings, 4-space C, 2-space org)
+*** DONE Configure =git config core.autocrlf input= for the repo (avoid CRLF noise on Windows)
+CLOSED: [2026-06-06 lør. 12:58]
 *** Acceptance
 - =git log= shows one initial commit with the skeleton above.
 
-** TODO 0.2 Directory skeleton
-*** TODO Create directories
+** DONE 0.2 Directory skeleton
+CLOSED: [2026-06-06 lør. 12:57]
+*** DONE Create directories
+CLOSED: [2026-06-06 lør. 12:57]
 #+begin_example
 src/        acmeid.h, acmeid.c           — pure core
 cli/        main.c                        — CLI front-end
@@ -63,7 +68,7 @@ docs/       spec.org, recipes.org, CHANGELOG.org
 *** Acceptance
 - =make help= lists targets =lib cli sqlite test install clean=.
 
-** TODO 0.3 Build system (portable Makefile)
+** DONE 0.3 Build system (portable Makefile)
 *** TODO Detect OS via =uname -s=, three cases
 - =Linux/= → =acmeid.so=
 - =Darwin/= → =acmeid.dylib=
@@ -104,7 +109,7 @@ EXEEXT      =
 *** Acceptance
 - =make lib cli sqlite= produces three artefacts on Linux, macOS, and MSYS2.
 
-** TODO 0.4 Lift spec into repo
+** DONE 0.4 Lift spec into repo
 *** TODO Copy =acmeid-proposal.org= → =docs/spec.org=
 *** TODO Add a "v1.1 changes" section
 - Optional prefix (CURIE-style, not in checksum).
@@ -121,7 +126,7 @@ EXEEXT      =
 
 * Phase 1 — Core library refactor                                     :core:
 
-** TODO 1.1 Header file =src/acmeid.h=
+** DONE 1.1 Header file =src/acmeid.h=
 *** TODO Public API declarations
 #+begin_src c
 int acme_mint_id(char type,
@@ -153,7 +158,7 @@ char acme_check_char(const char *core);
 *** Acceptance
 - Header compiles standalone with =-Wpedantic= on all three platforms.
 
-** TODO 1.2 Extract existing functions into =src/acmeid.c=
+** DONE 1.2 Extract existing functions into =src/acmeid.c=
 *** TODO Move from current =acmeid.c=
 - =char_value= (keep static, internal only)
 - =slug5= → rename =acme_slug5=
@@ -166,7 +171,7 @@ char acme_check_char(const char *core);
 *** Acceptance
 - =gcc -c src/acmeid.c= produces =acmeid.o= with no warnings on all platforms.
 
-** TODO 1.3 Implement new =acme_mint_id= signature
+** DONE 1.3 Implement new =acme_mint_id= signature
 *** TODO Argument validation and normalisation
 - =type=: upper-case it; reject if =!isalpha(type)= (return -1).
 - =prefix=: NULL/empty → skip; else copy verbatim into =out= (NOT in checksum).
@@ -186,7 +191,7 @@ char acme_check_char(const char *core);
   - type + prefix + label;
   - type + prefix + label + length.
 
-** TODO 1.4 Update =acme_verify_id= for new forms
+** DONE 1.4 Update =acme_verify_id= for new forms
 *** TODO Tolerate optional prefix
 - Scan for last =':'= in input; if present, validate suffix only.
 - Prefix itself is not checksummed and is not validated structurally.
@@ -201,7 +206,7 @@ char acme_check_char(const char *core);
 - Tampering any single character invalidates.
 - =verify_id("lepus:C_029BGJH65")= returns 1.
 
-** TODO 1.5 Replace =rand()= with cryptographic source
+** DONE 1.5 Replace =rand()= with cryptographic source
 *** TODO Define =acme_random_bytes(void *buf, size_t n)=
 *** TODO Three-way platform select
 - =_WIN32= → =BCryptGenRandom(NULL, buf, n, BCRYPT_USE_SYSTEM_PREFERRED_RNG)=,
@@ -215,7 +220,7 @@ char acme_check_char(const char *core);
 - 10 000 IDs minted in a tight loop have zero duplicates.
 - =grep -n srand src/acmeid.c= returns nothing.
 
-** TODO 1.6 Unit tests =test/test_core.c=
+** DONE 1.6 Unit tests =test/test_core.c=
 *** TODO Round-trip tests
 - mint/verify round-trip for all four arities.
 *** TODO Prefix-not-in-checksum test
@@ -243,7 +248,7 @@ char acme_check_char(const char *core);
 
 * Phase 2 — CLI tool                                                   :cli:
 
-** TODO 2.1 Argument parsing in =cli/main.c=
+** DONE 2.1 Argument parsing in =cli/main.c=
 *** TODO Subcommand dispatch
 - =mint=, =verify=, =batch=, =help=, =version=.
 *** TODO =mint= flags via =getopt_long=
@@ -266,7 +271,7 @@ char acme_check_char(const char *core);
 - =acmeid help= and =acmeid mint --help= show clear usage.
 - Bad flags exit 2 with one-line stderr message.
 
-** TODO 2.2 Output discipline
+** DONE 2.2 Output discipline
 *** TODO =mint= → ID + newline to stdout
 *** TODO All diagnostics → stderr
 *** TODO =verify= silent on success; =-v= flag enables messages
@@ -275,7 +280,7 @@ char acme_check_char(const char *core);
 *** Acceptance
 - =acmeid mint -t C | acmeid verify= round-trips through a pipe; exit 0.
 
-** TODO 2.3 CLI tests =test/test_cli.sh=
+** DONE 2.3 CLI tests =test/test_cli.sh=
 *** TODO Golden-output tests via here-docs and =diff=
 *** TODO mint with all flag combos, verify each
 *** TODO batch over a 100-line fixture
@@ -292,7 +297,7 @@ char acme_check_char(const char *core);
 - =make test= runs both =test_core= and =test_cli.sh=; non-zero exit on any failure.
 - Tests pass on Linux, macOS, and MSYS2.
 
-** TODO 2.4 Man page =docs/acmeid.1=
+** DONE 2.4 Man page =docs/acmeid.1=
 *** TODO Sections
 - NAME, SYNOPSIS, DESCRIPTION, COMMANDS, EXAMPLES, EXIT STATUS, SEE ALSO.
 *** TODO Examples cover all four arity calls
@@ -303,7 +308,7 @@ char acme_check_char(const char *core);
 
 * Phase 3 — SQLite loadable extension                              :sqlite:
 
-** TODO 3.1 Extension skeleton =sqlite/acmeid_sqlite.c=
+** DONE 3.1 Extension skeleton =sqlite/acmeid_sqlite.c=
 *** TODO Boilerplate
 #+begin_src c
 #include <sqlite3ext.h>
@@ -328,7 +333,7 @@ int sqlite3_acmeid_init(sqlite3 *db, char **pzErrMsg,
 - =sqlite3 :memory: ".load ./acmeid" "select 1"= succeeds on all three platforms.
 - On MSYS2: =/mingw64/bin/sqlite3 :memory: ".load c:/opt/acmeid/acmeid"= succeeds.
 
-** TODO 3.2 Register =acme_mint_id= UDF — four arities
+** DONE 3.2 Register =acme_mint_id= UDF — four arities
 *** TODO Arity 1: =acme_mint_id(type)=
 - No prefix, no slug, length 4.
 *** TODO Arity 2: =acme_mint_id(type, prefix)=
@@ -354,7 +359,7 @@ int sqlite3_acmeid_init(sqlite3 *db, char **pzErrMsg,
   - =select acme_mint_id('C','lepus:','Pitch 1.5 mm')=
   - =select acme_mint_id('C','lepus:','Pitch',6)=
 
-** TODO 3.3 Register =acme_verify_id= UDF (arity 1)
+** DONE 3.3 Register =acme_verify_id= UDF (arity 1)
 *** TODO Mark =SQLITE_DETERMINISTIC | SQLITE_INNOCUOUS=
 - So it can appear in =CHECK= constraints, generated columns, and indexes.
 *** TODO Return =sqlite3_result_int(ctx, 0_or_1)=
@@ -364,7 +369,7 @@ int sqlite3_acmeid_init(sqlite3 *db, char **pzErrMsg,
 - =select acme_verify_id('lepus:C_029BGJH65')= → 1.
 - =select acme_verify_id('lepus:C_029BGJH66')= → 0 (one char tampered).
 
-** TODO 3.4 SQL test suite =test/test_sqlite.sql=
+** DONE 3.4 SQL test suite =test/test_sqlite.sql=
 *** TODO Smoke tests for all UDF arities
 *** TODO Determinism trap test
 - =select acme_mint_id('C') from (values(1),(2),(3),(4),(5))=
@@ -382,7 +387,7 @@ int sqlite3_acmeid_init(sqlite3 *db, char **pzErrMsg,
 - =make test= runs the SQL suite on all three platforms.
 - All assertions print =OK=.
 
-** TODO 3.5 Document the load mechanism in =docs/recipes.org=
+** DONE 3.5 Document the load mechanism in =docs/recipes.org=
 *** TODO MSYS2 / Windows recipe (canonical)
 #+begin_example
 # In an org-babel sqlite block:
@@ -408,7 +413,7 @@ sqlite> .load c:/opt/acmeid/acmeid
 
 * Phase 4 — OTTR / ontology source database recipe                  :recipe:
 
-** TODO 4.1 Write =docs/recipes.org= core sections
+** DONE 4.1 Write =docs/recipes.org= core sections
 *** TODO Pattern explanation: spine tables, composite tables, idempotent minting
 - Why minting must be in-process (no CSV round-trip).
 - "Lookup before mint" as non-negotiable discipline.
@@ -425,7 +430,7 @@ sqlite> .load c:/opt/acmeid/acmeid
 - A colleague can run the recipe top-to-bottom in
   =/mingw64/bin/sqlite3= and reproduce the worked example.
 
-** TODO 4.2 Migration note for existing =fastener.db=
+** DONE 4.2 Migration note for existing =fastener.db=
 *** TODO Show how to add =CHECK (acme_verify_id(id))= to existing tables
 - Via =alter table add column ... check= where supported.
 - Or rebuild via =create table new as select ...; drop; rename=.
@@ -435,7 +440,7 @@ sqlite> .load c:/opt/acmeid/acmeid
 *** Acceptance
 - Snippet runs cleanly against the existing =fastener.db= schema.
 
-** TODO 4.3 OTTR handoff documentation
+** DONE 4.3 OTTR handoff documentation
 *** TODO Explain spine → CSV export step
 - =.mode csv= + =select= produces stable input for OTTR templates.
 - IDs are stable across runs (the spine guarantees this).
@@ -446,7 +451,7 @@ sqlite> .load c:/opt/acmeid/acmeid
 
 * Phase 5 — CI, release, distribution                                   :ci:
 
-** TODO 5.1 GitHub Actions workflow =.github/workflows/ci.yml=
+** DONE 5.1 GitHub Actions workflow =.github/workflows/ci.yml=
 *** TODO Three-OS matrix
 - =ubuntu-latest=
 - =macos-latest=

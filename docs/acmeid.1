@@ -1,0 +1,114 @@
+.TH ACMEID 1 "2026" "acmeid 0.1.0" "User Commands"
+.SH NAME
+acmeid \- mint and verify ACME Localname IDs
+.SH SYNOPSIS
+.B acmeid mint
+.B \-t
+.I TYPE
+.RB [ \-p
+.IR PREFIX ]
+.RB [ \-l
+.IR LABEL ]
+.RB [ \-n
+.IR LEN ]
+.br
+.B acmeid verify
+.RB [ \-v ]
+.I ID
+.br
+.B acmeid batch
+.B \-t
+.I TYPE
+.RB [ \-p
+.IR PREFIX ]
+.RB [ \-n
+.IR LEN ]
+.br
+.B acmeid help
+|
+.B acmeid version
+.SH DESCRIPTION
+.B acmeid
+generates short, sortable, checksummed local identifiers of the form
+.RS
+.PP
+.RI [ PREFIX :] TYPE _\fI[SLUG5]TIME4RAND_N\fR\fICHK1\fR
+.RE
+.PP
+where
+.I TYPE
+is a single uppercase ASCII letter,
+.I SLUG5
+is an optional 5-letter slug derived from a label,
+.I TIME4
+encodes days since 2020-01-01 UTC in Crockford Base32, and
+.I RAND_N
+provides 10-40 bits of entropy.  The trailing
+.I CHK1
+character ensures the full identifier's character values sum to
+zero mod 32.
+.SH COMMANDS
+.TP
+.B mint
+Produce a single new ID on stdout.
+.TP
+.B verify
+Exit 0 if the argument is a syntactically valid and checksum-correct
+ID (an optional CURIE-style prefix is tolerated), 1 otherwise.  With
+.B \-v
+also prints
+.RB \(lq VALID \(rq
+or
+.RB \(lq INVALID \(rq.
+.TP
+.B batch
+Read one label per line from stdin; for each, print
+.RI \(lq label \et id\(rq
+on stdout.  Empty input lines produce IDs without a slug.  Output is
+line-buffered, so the command pipes cleanly into
+.BR sqlite3 (1).
+.SH EXAMPLES
+.PP
+Mint a bare-type ID:
+.RS
+.B acmeid mint \-t C
+.RE
+.PP
+Mint with a CURIE prefix and a label-derived slug:
+.RS
+.B acmeid mint \-t C \-p lepus: \-l "Pitch 1.5 mm"
+.RE
+.PP
+Mint with a wider random section (6 chars instead of 4):
+.RS
+.B acmeid mint \-t C \-p lepus: \-l Pitch \-n 6
+.RE
+.PP
+Round-trip through a pipe:
+.RS
+.B acmeid mint \-t C | acmeid verify \-v
+.RE
+.PP
+Feed a list of labels into SQLite to populate a spine table:
+.RS
+.B acmeid batch \-t C \-p lepus: < labels.txt \\
+.br
+.B "  | sqlite3 ontology.db '.import --csv /dev/stdin staging'"
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+Success (or
+.BR verify :
+ID is valid).
+.TP
+.B 1
+.B verify
+only: the ID is syntactically invalid or its checksum doesn't match.
+.TP
+.B 2
+Usage error or runtime failure (bad flags, RNG error, buffer too small).
+.SH SEE ALSO
+.BR sqlite3 (1).
+.PP
+docs/spec.org and docs/recipes.org in the source distribution.

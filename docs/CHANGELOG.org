@@ -1,0 +1,51 @@
+#+title: acmeid CHANGELOG
+#+author: johanw
+#+date: 2026
+
+* Unreleased
+
+** Added
+- Phase 0 -- Bootstrap: repo skeleton (=src/=, =cli/=, =sqlite/=,
+  =test/=, =docs/=), portable Makefile with =uname -s= detection,
+  =.gitignore=, =.editorconfig=, README.
+- Phase 1 -- Pure C library (=src/acmeid.{h,c}=):
+  - New v1.1 signature =acme_mint_id(type, prefix, label, rand_len,
+    out, out_size)= with optional prefix, optional slug, and
+    configurable random length silently clamped to =[2,8]=.
+  - =acme_verify_id= tolerates an optional CURIE-style prefix
+    terminated by ':'.
+  - =acme_random_bytes= replaces =rand()/srand()=: =BCryptGenRandom=
+    on Windows, =arc4random_buf= on macOS/BSD, =/dev/urandom=
+    elsewhere.  This is the only platform-conditional code in the
+    library.
+  - UTF-8 Latin-1 supplement folding in =acme_slug5= (Ångström ->
+    angst, Naïve -> naive, Småfolk -> smafo).
+  - =ACME_API= export macro for clean DLL symbol export on MSYS2.
+- Phase 2 -- CLI (=cli/main.c=): subcommands =mint=, =verify=,
+  =batch=, =help=, =version= with =getopt_long= flag parsing.  Output
+  discipline: ID to stdout, diagnostics to stderr, line-buffered
+  batch.
+- Phase 3 -- SQLite loadable extension (=sqlite/acmeid_sqlite.c=):
+  =acme_mint_id= registered at four arities (non-deterministic, on
+  purpose) and =acme_verify_id= registered with
+  =SQLITE_DETERMINISTIC | SQLITE_INNOCUOUS= so it can appear in
+  =CHECK= constraints, generated columns, and indexes.
+- Phase 4 -- =docs/recipes.org= with the spine-table pattern and a
+  worked =ISO_261_M_diam_pitch_class= example.
+- Tests:
+  - =test/test_core.c= -- unit tests with assertion driver.
+  - =test/test_cli.sh= -- black-box CLI tests, MSYS2 line-ending safe.
+  - =test/test_sqlite.sql= + =test/run_sqlite_tests.sh= -- SQL-level
+    UDF tests including a "five rows, five distinct ids"
+    determinism trap.
+  - =make test-audit= -- greps for bare =sprintf=, network calls,
+    =rand()/srand()= in the library, and asserts that
+    =SQLITE_DETERMINISTIC= appears exactly once (on =verify=).
+
+** Changed
+- The legacy single-file =acmeid.c= at the repo root has been
+  replaced by =src/acmeid.{h,c}= + =cli/main.c=.
+
+** Removed
+- =rand()= / =srand()= -- never call non-cryptographic RNGs from the
+  library or the CLI.
