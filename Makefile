@@ -36,7 +36,7 @@ ifneq (,$(filter Darwin%,$(UNAME_S)))
     EXEEXT      :=
     SHLIB       := acmeid.dylib
     LDFLAGS_SHL := -dynamiclib
-    LIBS_SHL    :=
+    LIBS_SHL    := -lsqlite3
     INSTALL_BIN := /usr/local/bin
     INSTALL_LIB := /usr/local/lib
     SAN_FLAGS   := -fsanitize=address,undefined
