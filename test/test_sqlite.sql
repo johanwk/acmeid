@@ -54,15 +54,17 @@ CREATE TABLE dim_pitch (
     label TEXT NOT NULL UNIQUE
 );
 
-INSERT INTO dim_pitch(id, label)
-SELECT acme_mint_id('C','ex:',v.label), v.label
-FROM (VALUES
+WITH v(label) AS (
+    VALUES
     ('Pitch 1.0 mm'),
     ('Pitch 1.25 mm'),
     ('Pitch 1.5 mm'),
     ('Pitch 1.75 mm'),
     ('Pitch 2.0 mm')
-) AS v(label)
+)
+INSERT INTO dim_pitch(id, label)
+SELECT acme_mint_id('C','ex:',v.label), v.label
+FROM v
 WHERE NOT EXISTS (SELECT 1 FROM dim_pitch p WHERE p.label = v.label);
 
 SELECT 'spine-insert: ' ||
@@ -70,25 +72,30 @@ SELECT 'spine-insert: ' ||
 FROM dim_pitch;
 
 -- Re-run: should add zero rows (idempotent).
-INSERT INTO dim_pitch(id, label)
-SELECT acme_mint_id('C','ex:',v.label), v.label
-FROM (VALUES
+WITH v(label) AS (
+    VALUES
     ('Pitch 1.0 mm'),
     ('Pitch 1.25 mm'),
     ('Pitch 1.5 mm'),
     ('Pitch 1.75 mm'),
     ('Pitch 2.0 mm')
-) AS v(label)
+)
+INSERT INTO dim_pitch(id, label)
+SELECT acme_mint_id('C','ex:',v.label), v.label
+FROM v
 WHERE NOT EXISTS (SELECT 1 FROM dim_pitch p WHERE p.label = v.label);
 
 SELECT 'spine-idempotent: ' ||
        CASE WHEN COUNT(*) = 5 THEN 'OK' ELSE 'FAIL' END
 FROM dim_pitch;
 
--- The CHECK constraint must reject a tampered ID.
-.bail off
-INSERT INTO dim_pitch(id, label) VALUES ('ex:C_xxxxx0000ZZZZ0', 'tampered');
-.bail on
+-- The CHECK constraint must reject a tampered ID.  We use INSERT OR
+-- IGNORE so SQLite swallows the constraint violation silently (the
+-- test is whether the row exists afterwards, not whether sqlite3
+-- exits with status 0).
+INSERT OR IGNORE INTO dim_pitch(id, label)
+VALUES ('ex:C_xxxxx0000ZZZZ0', 'tampered');
+
 SELECT 'check-rejects-bad: ' ||
        CASE WHEN NOT EXISTS (SELECT 1 FROM dim_pitch WHERE label = 'tampered')
             THEN 'OK' ELSE 'FAIL' END;

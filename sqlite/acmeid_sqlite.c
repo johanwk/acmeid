@@ -21,10 +21,10 @@
  * statement.  Only acme_verify_id is marked deterministic, so that it
  * can appear in CHECK constraints, generated columns, and indexes.
  *
- * The Makefile audit target verifies that the literal symbol
- * SQLITE_DETERMINISTIC appears exactly once in this file (the verify
- * registration line below).  Do not add it elsewhere -- describe the
- * design in prose as the comment above does.
+ * The Makefile audit target greps this file for the determinism flag
+ * token and requires exactly one occurrence (on the verify registration
+ * line below).  Do not mention the flag's literal name elsewhere --
+ * describe the design in prose as the comment above does.
  */
 
 #include <sqlite3ext.h>

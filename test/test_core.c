@@ -46,7 +46,8 @@ static void test_slug5(void) {
     /* UTF-8 Latin-1 supplement folding. */
     acme_slug5("\xC3\x85ngstr\xC3\xB6m", s); CHECK_STREQ(s, "angst"); /* Ångström */
     acme_slug5("Na\xC3\xAFve",           s); CHECK_STREQ(s, "naive"); /* Naïve   */
-    acme_slug5("Sm\xC3\xA5folk",         s); CHECK_STREQ(s, "smafo"); /* Småfolk */
+    /* Literal split: \xA5 would otherwise greedily absorb the 'f' as a hex digit. */
+    acme_slug5("Sm\xC3\xA5" "folk",     s); CHECK_STREQ(s, "smafo"); /* Småfolk */
 }
 
 /* ------------------------------------------------------ mint/verify */
@@ -62,9 +63,9 @@ static void test_mint_verify_round_trip(void) {
     /* Arity 2: type + prefix.  Prefix is not in checksum. */
     n = acme_mint_id('C', "ex:", NULL, 0, id, sizeof(id));
     CHECK(n > 0);
-    CHECK(strncmp(id, "ex:", 6) == 0);
+    CHECK(strncmp(id, "ex:", 3) == 0);
     CHECK(acme_verify_id(id) == 1);
-    CHECK(acme_verify_id(id + 6) == 1);  /* strip prefix, still valid */
+    CHECK(acme_verify_id(id + 3) == 1);  /* strip prefix, still valid */
 
     /* Arity 3: with label.  Expect prefix + "T_sssssTTTTRRRRC". */
     n = acme_mint_id('C', "ex:", "Pitch 1.5 mm", 0, id, sizeof(id));
@@ -75,8 +76,8 @@ static void test_mint_verify_round_trip(void) {
     /* Arity 4: explicit length. */
     n = acme_mint_id('C', "ex:", "Pitch", 6, id, sizeof(id));
     CHECK(n > 0);
-    /* Total body length (after prefix) = 2 + 5 + 4 + 6 + 1 = 18. */
-    CHECK(strlen(id) == 6u + 18u);
+    /* Total body length (after prefix) = 2 + 5 + 4 + 6 + 1 = 18; prefix "ex:" = 3. */
+    CHECK(strlen(id) == 3u + 18u);
     CHECK(acme_verify_id(id) == 1);
 }
 
@@ -122,9 +123,13 @@ static void test_verify_negative(void) {
     broken[0] = (char)tolower((unsigned char)broken[0]);
     CHECK(acme_verify_id(broken) == 0);
 
-    /* Truncation. */
+    /* Truncation.  Chopping only the 1-char CHK leaves a 15-char string
+     * that is itself a valid v1.1 shape (rand_len = 3); in 1/32 of cases
+     * the residual sum is also 0 mod 32 and verify accidentally passes.
+     * Remove 3 chars instead -- that drops length below the with-slug
+     * minimum (14), so the shape check rejects every time. */
     strcpy(broken, id);
-    broken[strlen(broken) - 1] = '\0';
+    broken[strlen(broken) - 3] = '\0';
     CHECK(acme_verify_id(broken) == 0);
 
     /* NULL. */
@@ -141,7 +146,8 @@ static void test_verify_prefix_tolerant(void) {
     char id[ACME_MAX_ID_LEN];
     CHECK(acme_mint_id('C', NULL, NULL, 4, id, sizeof(id)) > 0);
 
-    char with_prefix[ACME_MAX_ID_LEN];
+    /* Generous: needs to hold a full URL prefix plus a max-length id. */
+    char with_prefix[ACME_MAX_ID_LEN + 64];
     snprintf(with_prefix, sizeof(with_prefix), "ex:%s", id);
     CHECK(acme_verify_id(with_prefix) == 1);
 

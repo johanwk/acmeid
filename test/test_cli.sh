@@ -58,8 +58,8 @@ esac
 
 ID=$("$ACMEID" mint -t C -p ex: -l Pitch -n 6)
 LEN=${#ID}
-# Expected length: 6 (prefix) + 2 + 5 + 4 + 6 + 1 = 24
-check "len with -n 6" "$LEN" 24
+# Expected length: 3 (prefix 'ex:') + 2 ('C_') + 5 (slug) + 4 (time) + 6 (rand) + 1 (chk) = 21
+check "len with -n 6" "$LEN" 21
 "$ACMEID" verify "$ID"; check_zero "verify -n 6" $?
 
 # Silent clamp: -n 0 and -n 99 should both succeed and verify.
@@ -91,12 +91,18 @@ mkdir -p test/fixtures
   echo "ISO 50001"
 } > "$FIXTURE"
 
-OUT=$("$ACMEID" batch -t C -p ex: < "$FIXTURE")
+# Strip CR from CLI output (MSYS2 stdout is text mode -> writes CRLF).
+OUT=$("$ACMEID" batch -t C -p ex: < "$FIXTURE" | tr -d '\r')
 NLINES=$(printf '%s\n' "$OUT" | wc -l | tr -d ' ')
 check "batch line count" "$NLINES" 4
 
-# Every emitted ID (last tab-separated field) must verify.
-echo "$OUT" | while IFS=$(printf '\t') read -r _ ID; do
+# Every emitted ID (second tab-separated field) must verify.
+# NB: don't parse with `IFS=<tab> read -r _ ID`.  When IFS contains
+# only a whitespace char, leading runs of it are treated as ignorable
+# IFS-whitespace, so the empty first field on the no-label batch line
+# ("\t<id>") collapses away and $ID ends up empty.  Pull the second
+# field out explicitly with cut(1).
+echo "$OUT" | cut -f2 | while read -r ID; do
     "$ACMEID" verify "$ID" || { echo "FAIL batch produced invalid id: $ID" >&2; exit 1; }
 done
 

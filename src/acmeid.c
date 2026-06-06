@@ -288,10 +288,14 @@ int acme_mint_id(char type,
 int acme_verify_id(const char *id) {
     if (!id) return 0;
 
-    /* Strip optional prefix: everything up to and including the last ':'. */
+    /* Strip optional prefix: everything up to and including the last ':'
+     * or '/', whichever comes later.  This tolerates both CURIE-style
+     * (ex:C_...) and full IRI (https://host/path/C_...) forms. */
     const char *suffix = id;
-    const char *colon = strrchr(id, ':');
-    if (colon) suffix = colon + 1;
+    const char *colon  = strrchr(id, ':');
+    const char *slash  = strrchr(id, '/');
+    const char *sep    = (colon > slash) ? colon : slash;
+    if (sep) suffix = sep + 1;
 
     size_t len = strlen(suffix);
     if (len < 9 || len > 20) return 0;   /* tightest envelope (see header) */
