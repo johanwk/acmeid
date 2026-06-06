@@ -25,9 +25,26 @@ workflow that motivated the SQLite extension.
 
 ## Build
 
-Requires a C11 compiler and GNU make. SQLite headers are *not*
-required at build time -- the extension uses the SQLite extension
-loader contract and resolves symbols from the host process.
+Requires a C11 compiler and GNU make. The SQLite loadable extension
+also needs the SQLite development headers (`sqlite3.h` /
+`sqlite3ext.h`) at build time; symbols are still resolved from the
+host process at load time via the extension loader contract.
+
+Install the headers with your platform's package manager:
+
+```sh
+# Debian/Ubuntu
+sudo apt install libsqlite3-dev
+# Fedora/RHEL
+sudo dnf install sqlite-devel
+# macOS (Homebrew)
+brew install sqlite
+# MSYS2/mingw-w64
+pacman -S mingw-w64-x86_64-sqlite3
+```
+
+If the headers live outside the default include path, pass their
+location via `CPPFLAGS`, e.g. `make CPPFLAGS=-I/opt/homebrew/include`.
 
 ```sh
 make            # builds libacmeid.a, acmeid CLI, acmeid.{so|dylib|dll}
