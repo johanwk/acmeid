@@ -60,20 +60,20 @@ static void test_mint_verify_round_trip(void) {
     CHECK(acme_verify_id(id) == 1);
 
     /* Arity 2: type + prefix.  Prefix is not in checksum. */
-    n = acme_mint_id('C', "lepus:", NULL, 0, id, sizeof(id));
+    n = acme_mint_id('C', "ex:", NULL, 0, id, sizeof(id));
     CHECK(n > 0);
-    CHECK(strncmp(id, "lepus:", 6) == 0);
+    CHECK(strncmp(id, "ex:", 6) == 0);
     CHECK(acme_verify_id(id) == 1);
     CHECK(acme_verify_id(id + 6) == 1);  /* strip prefix, still valid */
 
     /* Arity 3: with label.  Expect prefix + "T_sssssTTTTRRRRC". */
-    n = acme_mint_id('C', "lepus:", "Pitch 1.5 mm", 0, id, sizeof(id));
+    n = acme_mint_id('C', "ex:", "Pitch 1.5 mm", 0, id, sizeof(id));
     CHECK(n > 0);
     CHECK(strstr(id, "C_pitch") != NULL);
     CHECK(acme_verify_id(id) == 1);
 
     /* Arity 4: explicit length. */
-    n = acme_mint_id('C', "lepus:", "Pitch", 6, id, sizeof(id));
+    n = acme_mint_id('C', "ex:", "Pitch", 6, id, sizeof(id));
     CHECK(n > 0);
     /* Total body length (after prefix) = 2 + 5 + 4 + 6 + 1 = 18. */
     CHECK(strlen(id) == 6u + 18u);
@@ -134,7 +134,7 @@ static void test_verify_negative(void) {
     CHECK(acme_verify_id("") == 0);
 
     /* Bad prefix-only string. */
-    CHECK(acme_verify_id("lepus:") == 0);
+    CHECK(acme_verify_id("ex:") == 0);
 }
 
 static void test_verify_prefix_tolerant(void) {
@@ -142,7 +142,7 @@ static void test_verify_prefix_tolerant(void) {
     CHECK(acme_mint_id('C', NULL, NULL, 4, id, sizeof(id)) > 0);
 
     char with_prefix[ACME_MAX_ID_LEN];
-    snprintf(with_prefix, sizeof(with_prefix), "lepus:%s", id);
+    snprintf(with_prefix, sizeof(with_prefix), "ex:%s", id);
     CHECK(acme_verify_id(with_prefix) == 1);
 
     snprintf(with_prefix, sizeof(with_prefix), "https://x/y/%s", id);

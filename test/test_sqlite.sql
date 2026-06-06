@@ -15,15 +15,15 @@ SELECT 'arity1: ' ||
             THEN 'OK' ELSE 'FAIL' END;
 
 SELECT 'arity2: ' ||
-       CASE WHEN acme_verify_id(acme_mint_id('C','lepus:'))
+       CASE WHEN acme_verify_id(acme_mint_id('C','ex:'))
             THEN 'OK' ELSE 'FAIL' END;
 
 SELECT 'arity3: ' ||
-       CASE WHEN acme_verify_id(acme_mint_id('C','lepus:','Pitch 1.5 mm'))
+       CASE WHEN acme_verify_id(acme_mint_id('C','ex:','Pitch 1.5 mm'))
             THEN 'OK' ELSE 'FAIL' END;
 
 SELECT 'arity4: ' ||
-       CASE WHEN acme_verify_id(acme_mint_id('C','lepus:','Pitch',6))
+       CASE WHEN acme_verify_id(acme_mint_id('C','ex:','Pitch',6))
             THEN 'OK' ELSE 'FAIL' END;
 
 -- ------------------------------------------------------------------
@@ -43,7 +43,7 @@ FROM rows;
 --  3. Tampering invalidates.
 -- ------------------------------------------------------------------
 SELECT 'verify-tampered: ' ||
-       CASE WHEN acme_verify_id('lepus:C_029BGJH66') = 0
+       CASE WHEN acme_verify_id('ex:C_029BGJH66') = 0
             THEN 'OK' ELSE 'FAIL' END;
 
 -- ------------------------------------------------------------------
@@ -55,7 +55,7 @@ CREATE TABLE dim_pitch (
 );
 
 INSERT INTO dim_pitch(id, label)
-SELECT acme_mint_id('C','lepus:',v.label), v.label
+SELECT acme_mint_id('C','ex:',v.label), v.label
 FROM (VALUES
     ('Pitch 1.0 mm'),
     ('Pitch 1.25 mm'),
@@ -71,7 +71,7 @@ FROM dim_pitch;
 
 -- Re-run: should add zero rows (idempotent).
 INSERT INTO dim_pitch(id, label)
-SELECT acme_mint_id('C','lepus:',v.label), v.label
+SELECT acme_mint_id('C','ex:',v.label), v.label
 FROM (VALUES
     ('Pitch 1.0 mm'),
     ('Pitch 1.25 mm'),
@@ -87,7 +87,7 @@ FROM dim_pitch;
 
 -- The CHECK constraint must reject a tampered ID.
 .bail off
-INSERT INTO dim_pitch(id, label) VALUES ('lepus:C_xxxxx0000ZZZZ0', 'tampered');
+INSERT INTO dim_pitch(id, label) VALUES ('ex:C_xxxxx0000ZZZZ0', 'tampered');
 .bail on
 SELECT 'check-rejects-bad: ' ||
        CASE WHEN NOT EXISTS (SELECT 1 FROM dim_pitch WHERE label = 'tampered')

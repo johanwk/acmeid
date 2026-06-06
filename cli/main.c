@@ -36,7 +36,7 @@ static void print_usage(FILE *fp) {
         "\n"
         "options:\n"
         "  -t, --type TYPE     single ASCII letter (required for mint/batch)\n"
-        "  -p, --prefix PFX    optional CURIE-style prefix, e.g. 'lepus:'\n"
+        "  -p, --prefix PFX    optional CURIE-style prefix, e.g. 'ex:'\n"
         "  -l, --label LBL     optional label for the 5-letter slug\n"
         "  -n, --length N      random width, clamped to [2,8] (default 4)\n"
         "  -v, --verbose       print VALID/INVALID for verify\n"

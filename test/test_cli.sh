@@ -45,18 +45,18 @@ ID=$("$ACMEID" mint -t C)
 "$ACMEID" verify "$ID"
 check_zero "mint -t C | verify"             $?
 
-ID=$("$ACMEID" mint -t C -p lepus:)
-case "$ID" in lepus:*) PASS=$((PASS + 1));;
+ID=$("$ACMEID" mint -t C -p ex:)
+case "$ID" in ex:*) PASS=$((PASS + 1));;
               *) FAIL=$((FAIL + 1)); echo "FAIL prefix not retained: $ID" >&2;;
 esac
 "$ACMEID" verify "$ID"; check_zero "verify with prefix" $?
 
-ID=$("$ACMEID" mint -t C -p lepus: -l "Pitch 1.5 mm")
-case "$ID" in lepus:C_pitch*) PASS=$((PASS + 1));;
+ID=$("$ACMEID" mint -t C -p ex: -l "Pitch 1.5 mm")
+case "$ID" in ex:C_pitch*) PASS=$((PASS + 1));;
               *) FAIL=$((FAIL + 1)); echo "FAIL slug not retained: $ID" >&2;;
 esac
 
-ID=$("$ACMEID" mint -t C -p lepus: -l Pitch -n 6)
+ID=$("$ACMEID" mint -t C -p ex: -l Pitch -n 6)
 LEN=${#ID}
 # Expected length: 6 (prefix) + 2 + 5 + 4 + 6 + 1 = 24
 check "len with -n 6" "$LEN" 24
@@ -91,7 +91,7 @@ mkdir -p test/fixtures
   echo "ISO 50001"
 } > "$FIXTURE"
 
-OUT=$("$ACMEID" batch -t C -p lepus: < "$FIXTURE")
+OUT=$("$ACMEID" batch -t C -p ex: < "$FIXTURE")
 NLINES=$(printf '%s\n' "$OUT" | wc -l | tr -d ' ')
 check "batch line count" "$NLINES" 4
 

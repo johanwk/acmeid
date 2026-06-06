@@ -14,7 +14,7 @@ but adds three orthogonal options so a single library and a single
 SQL UDF can cover all the cases we actually see in practice:
 
 - *Optional prefix.* The localname may be prefixed with a CURIE-style
-  =prefix:= (e.g. =lepus:=). The prefix is copied through =mint= and
+  =prefix:= (e.g. =ex:=). The prefix is copied through =mint= and
   tolerated by =verify=, but is *not* part of the checksum. This
   matches the way ids appear in our RDF (always with a prefix) and in
   our SQL spine tables (sometimes stored bare, sometimes with the

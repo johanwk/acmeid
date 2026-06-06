@@ -47,7 +47,7 @@ extern "C" {
  *
  *   type      Single ASCII letter (case-insensitive); upper-cased
  *             internally.  Returns -1 if !isalpha(type).
- *   prefix    Optional CURIE-style prefix (e.g. "lepus:"). NULL or
+ *   prefix    Optional CURIE-style prefix (e.g. "ex:"). NULL or
  *             "" omits it.  Copied verbatim; NOT part of the checksum.
  *   label     Optional human label used to derive a 5-letter slug.
  *             NULL or "" omits the slug entirely.

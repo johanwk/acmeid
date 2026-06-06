@@ -76,12 +76,12 @@ Mint a bare-type ID:
 .PP
 Mint with a CURIE prefix and a label-derived slug:
 .RS
-.B acmeid mint \-t C \-p lepus: \-l "Pitch 1.5 mm"
+.B acmeid mint \-t C \-p ex: \-l "Pitch 1.5 mm"
 .RE
 .PP
 Mint with a wider random section (6 chars instead of 4):
 .RS
-.B acmeid mint \-t C \-p lepus: \-l Pitch \-n 6
+.B acmeid mint \-t C \-p ex: \-l Pitch \-n 6
 .RE
 .PP
 Round-trip through a pipe:
@@ -91,7 +91,7 @@ Round-trip through a pipe:
 .PP
 Feed a list of labels into SQLite to populate a spine table:
 .RS
-.B acmeid batch \-t C \-p lepus: < labels.txt \\
+.B acmeid batch \-t C \-p ex: < labels.txt \\
 .br
 .B "  | sqlite3 ontology.db '.import --csv /dev/stdin staging'"
 .RE

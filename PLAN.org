@@ -204,7 +204,7 @@ char acme_check_char(const char *core);
 *** Acceptance
 - Golden table of 8 IDs (2 arities × 4 random lengths) all verify.
 - Tampering any single character invalidates.
-- =verify_id("lepus:C_029BGJH65")= returns 1.
+- =verify_id("ex:C_029BGJH65")= returns 1.
 
 ** DONE 1.5 Replace =rand()= with cryptographic source
 *** DONE Define =acme_random_bytes(void *buf, size_t n)=
@@ -355,9 +355,9 @@ int sqlite3_acmeid_init(sqlite3 *db, char **pzErrMsg,
 *** Acceptance
 - All four call shapes return well-formed IDs:
   - =select acme_mint_id('C')=
-  - =select acme_mint_id('C','lepus:')=
-  - =select acme_mint_id('C','lepus:','Pitch 1.5 mm')=
-  - =select acme_mint_id('C','lepus:','Pitch',6)=
+  - =select acme_mint_id('C','ex:')=
+  - =select acme_mint_id('C','ex:','Pitch 1.5 mm')=
+  - =select acme_mint_id('C','ex:','Pitch',6)=
 
 ** DONE 3.3 Register =acme_verify_id= UDF (arity 1)
 *** DONE Mark =SQLITE_DETERMINISTIC | SQLITE_INNOCUOUS=
@@ -366,8 +366,8 @@ int sqlite3_acmeid_init(sqlite3 *db, char **pzErrMsg,
 *** DONE NULL input → NULL result
 *** Acceptance
 - =select acme_verify_id(acme_mint_id('C'))= → 1.
-- =select acme_verify_id('lepus:C_029BGJH65')= → 1.
-- =select acme_verify_id('lepus:C_029BGJH66')= → 0 (one char tampered).
+- =select acme_verify_id('ex:C_029BGJH65')= → 1.
+- =select acme_verify_id('ex:C_029BGJH66')= → 0 (one char tampered).
 
 ** DONE 3.4 SQL test suite =test/test_sqlite.sql=
 *** DONE Smoke tests for all UDF arities
@@ -420,7 +420,7 @@ sqlite> .load c:/opt/acmeid/acmeid
 - Spine tables as authoritative registries.
 *** DONE Worked example reproducing =ISO_261_M_diam_pitch_class=
 - Without the CSV round-trip from =fastener-queries.org=.
-- =dim_diameter= spine populated via =insert ... select acme_mint_id('C','lepus:') ... where not exists=.
+- =dim_diameter= spine populated via =insert ... select acme_mint_id('C','ex:') ... where not exists=.
 - =dim_pitch= spine ditto.
 - =dim_diam_pitch= composite that joins both spines for parent FKs
   and mints its own id in one statement.

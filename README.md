@@ -10,7 +10,7 @@ The format is:
 [PREFIX:] TYPE _ [SLUG5] TIME4 RAND_N CHK1
 ```
 
-- `PREFIX` -- optional CURIE-style prefix, e.g. `lepus:`. Not part of
+- `PREFIX` -- optional CURIE-style prefix, e.g. `ex:`. Not part of
   the checksum; tolerated by `verify`.
 - `TYPE` -- single uppercase ASCII letter, domain-owned.
 - `SLUG5` -- optional 5 lowercase letters derived from the label.
@@ -39,11 +39,11 @@ make install    # /usr/local on POSIX; c:/opt/acmeid on MSYS2
 
 ```sh
 acmeid mint   -t C                            # bare type
-acmeid mint   -t C -p lepus:                  # type + prefix
-acmeid mint   -t C -p lepus: -l "Pitch 1.5 mm"
-acmeid mint   -t C -p lepus: -l "Pitch" -n 6  # 6 random chars
-acmeid verify lepus:C_pitchABCD1234X
-acmeid batch  -t C -p lepus: < labels.txt
+acmeid mint   -t C -p ex:                  # type + prefix
+acmeid mint   -t C -p ex: -l "Pitch 1.5 mm"
+acmeid mint   -t C -p ex: -l "Pitch" -n 6  # 6 random chars
+acmeid verify ex:C_pitchABCD1234X
+acmeid batch  -t C -p ex: < labels.txt
 ```
 
 ## SQLite
@@ -51,10 +51,10 @@ acmeid batch  -t C -p lepus: < labels.txt
 ```sql
 .load /usr/local/lib/acmeid        -- or:  c:/opt/acmeid/acmeid
 SELECT acme_mint_id('C');
-SELECT acme_mint_id('C','lepus:');
-SELECT acme_mint_id('C','lepus:','Pitch 1.5 mm');
-SELECT acme_mint_id('C','lepus:','Pitch',6);
-SELECT acme_verify_id('lepus:C_pitchABCD1234X');
+SELECT acme_mint_id('C','ex:');
+SELECT acme_mint_id('C','ex:','Pitch 1.5 mm');
+SELECT acme_mint_id('C','ex:','Pitch',6);
+SELECT acme_verify_id('ex:C_pitchABCD1234X');
 ```
 
 `acme_mint_id` is registered **non-deterministic** on purpose, so it
