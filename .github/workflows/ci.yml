@@ -19,6 +19,14 @@ jobs:
       - name: Install sqlite3
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y sqlite3 libsqlite3-dev
+      - name: Install sqlite3 (macOS, with extension loading)
+        if: matrix.os == 'macos-latest'
+        # /usr/bin/sqlite3 on macOS is built -DSQLITE_OMIT_LOAD_EXTENSION,
+        # so `.load` is unrecognised.  Homebrew's sqlite is keg-only;
+        # prepend its bin to PATH for subsequent steps.
+        run: |
+          brew install sqlite
+          echo "$(brew --prefix sqlite)/bin" >> "$GITHUB_PATH"
       - name: Build
         run: make lib cli sqlite
       - name: Test
