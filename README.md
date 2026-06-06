@@ -89,6 +89,21 @@ generated columns, and indexes.
   `rand()` / `srand()`.
 - All functions in `src/acmeid.c` are reentrant.
 
+## Install
+
+Pre-built bundles for tagged releases are attached to each
+[GitHub Release](../../releases) (see [`.github/workflows/release.yml`](.github/workflows/release.yml)):
+
+- `acmeid-linux-x64.tar.gz`   -- `acmeid`, `acmeid.so`
+- `acmeid-macos-x64.tar.gz`   -- `acmeid`, `acmeid.dylib`
+- `acmeid-windows-x64.zip`    -- `acmeid.exe`, `acmeid.dll`,
+  `install.cmd` (copies both into `c:\opt\acmeid\`)
+- `SHA256SUMS`                -- checksums for the three bundles above
+
+Verify and unpack, then run `install.cmd` on Windows or copy by hand
+on POSIX (`acmeid` to `/usr/local/bin`, the shared lib to
+`/usr/local/lib`).
+
 ## License
 
 GPLv3 -- see [`LICENSE`](LICENSE).

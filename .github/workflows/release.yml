@@ -1,0 +1,143 @@
+name: release
+
+# Builds, tests, packages, and publishes a GitHub Release on any tag
+# matching v*.  Bundle layout matches PLAN.org section 5.2.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # ----------------------------------------------------------- preflight
+  preflight:
+    name: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify tag matches Makefile VERSION
+        run: |
+          TAG_VER="${GITHUB_REF_NAME#v}"
+          MK_VER=$(awk -F':=' '/^VERSION[[:space:]]*:=/{gsub(/[[:space:]]/,"",$2); print $2; exit}' Makefile)
+          echo "Tag      : $TAG_VER"
+          echo "Makefile : $MK_VER"
+          if [ "$TAG_VER" != "$MK_VER" ]; then
+            echo "::error::Tag v$TAG_VER does not match Makefile VERSION $MK_VER"
+            exit 1
+          fi
+
+  # -------------------------------------------------------- build-posix
+  build-posix:
+    name: build-${{ matrix.os }}
+    needs: preflight
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: acmeid-linux-x64
+            shlib: acmeid.so
+          - os: macos-latest
+            asset: acmeid-macos-x64
+            shlib: acmeid.dylib
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install sqlite3 (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y sqlite3 libsqlite3-dev
+      - name: Install sqlite3 (macOS, with extension loading)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew list sqlite >/dev/null 2>&1 || brew install sqlite
+          echo "$(brew --prefix sqlite)/bin" >> "$GITHUB_PATH"
+      - name: Build
+        run: make lib cli sqlite
+      - name: Test
+        run: make test
+      - name: Bundle
+        env:
+          COPYFILE_DISABLE: "1"   # don't embed ._* AppleDouble files
+        run: |
+          mkdir -p dist/${{ matrix.asset }}
+          cp acmeid ${{ matrix.shlib }} LICENSE README.md \
+              dist/${{ matrix.asset }}/
+          cp docs/acmeid.1 dist/${{ matrix.asset }}/ 2>/dev/null || true
+          tar -C dist -czf dist/${{ matrix.asset }}.tar.gz ${{ matrix.asset }}
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}.tar.gz
+          if-no-files-found: error
+
+  # ----------------------------------------------------- build-windows
+  build-windows:
+    name: build-windows-mingw64
+    needs: preflight
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-sqlite3
+            make
+            zip
+      - name: Build
+        run: make lib cli sqlite
+      - name: Test
+        run: make test
+      - name: Bundle
+        run: |
+          mkdir -p dist/acmeid-windows-x64
+          cp acmeid.exe acmeid.dll LICENSE README.md \
+              dist/acmeid-windows-x64/
+          # install.cmd needs CRLF for Explorer double-click friendliness.
+          sed 's/$/\r/' packaging/windows/install.cmd \
+              > dist/acmeid-windows-x64/install.cmd
+          (cd dist && zip -r acmeid-windows-x64.zip acmeid-windows-x64)
+      - uses: actions/upload-artifact@v5
+        with:
+          name: acmeid-windows-x64
+          path: dist/acmeid-windows-x64.zip
+          if-no-files-found: error
+
+  # --------------------------------------------------------------- release
+  release:
+    name: publish github release
+    needs: [build-posix, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # required to create the release and upload assets
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          path: artefacts
+      - name: Collect bundles and compute SHA256SUMS
+        run: |
+          mkdir -p release
+          find artefacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) \
+              -exec cp {} release/ \;
+          (cd release && sha256sum *.tar.gz *.zip > SHA256SUMS)
+          echo "--- release contents ---"
+          ls -la release/
+          echo "--- SHA256SUMS ---"
+          cat release/SHA256SUMS
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.tar.gz
+            release/*.zip
+            release/SHA256SUMS
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

@@ -41,6 +41,18 @@
   - =make test-audit= -- greps for bare =sprintf=, network calls,
     =rand()/srand()= in the library, and asserts that
     =SQLITE_DETERMINISTIC= appears exactly once (on =verify=).
+- Phase 5 -- CI/release:
+  - =.github/workflows/ci.yml= -- three-OS matrix
+    (ubuntu-latest, macos-latest, windows-2025/MINGW64) builds and
+    tests on every push to =main= and every PR.
+  - =.github/workflows/release.yml= -- on a =v*= tag, builds and
+    tests on all three OSes, then publishes a GitHub Release with
+    =acmeid-linux-x64.tar.gz=, =acmeid-macos-x64.tar.gz=,
+    =acmeid-windows-x64.zip= (the latter including =install.cmd=
+    that copies into =c:\opt\acmeid\=), plus a =SHA256SUMS= file.
+    A preflight job asserts that =VERSION= in the Makefile matches
+    the tag; pre-release tags (containing =-=, e.g. =v0.1.0-rc1=)
+    are marked prerelease automatically.
 
 ** Changed
 - The legacy single-file =acmeid.c= at the repo root has been
