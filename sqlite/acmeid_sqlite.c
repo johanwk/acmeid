@@ -124,3 +124,27 @@ int sqlite3_acmeid_init(sqlite3 *db, char **pzErrMsg,
 
     return SQLITE_OK;
 }
+
+/*
+ * Canonical SQLite extension entrypoint.
+ *
+ * SQLite's `.load FILE` (no explicit entrypoint argument) first tries
+ * `sqlite3_<basename>_init` and only then falls back to
+ * `sqlite3_extension_init`.  Exporting both names makes the extension
+ * robust against:
+ *   - callers that pass `sqlite3_extension_init` explicitly,
+ *   - basenames that don't round-trip cleanly through SQLite's
+ *     derivation (e.g. on macOS when the loader strips/keeps the
+ *     `.dylib` suffix differently than expected).
+ *
+ * This is a thin forwarder; all registration lives in the function
+ * above.  (The audit target greps this file for the determinism flag
+ * token and requires exactly one occurrence -- do not name it here.)
+ */
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
+int sqlite3_extension_init(sqlite3 *db, char **pzErrMsg,
+                           const sqlite3_api_routines *pApi) {
+    return sqlite3_acmeid_init(db, pzErrMsg, pApi);
+}
