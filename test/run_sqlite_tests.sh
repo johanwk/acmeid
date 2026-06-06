@@ -31,12 +31,12 @@ case "$PROBE" in
         ;;
 esac
 
-OUT=$(printf '.load %s\n' "$EXT" | cat - test/test_sqlite.sql | sqlite3 :memory:)
-
 if ! printf '.load %s sqlite3_extension_init\n.quit\n' "$EXT" | sqlite3 :memory: >/dev/null 2>&1; then
     echo "test_sqlite: explicit sqlite3_extension_init entrypoint load failed" >&2
     exit 1
 fi
+
+OUT=$(printf '.load %s\n' "$EXT" | cat - test/test_sqlite.sql | sqlite3 :memory:)
 
 echo "$OUT"
 
